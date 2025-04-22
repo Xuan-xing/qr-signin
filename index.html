@@ -19,44 +19,54 @@
     <h1>掃描 QR 簽到</h1>
     <!-- 固定 QR 圖，指向本頁 -->
     <img class="qr"
-         src="https://quickchart.io/qr?text=https%3A%2F%2F<username>.github.io%2Fqr-signin%2F&size=180"
+         src="https://quickchart.io/qr?text=https%3A%2F%2Fxuan-xing.github.io%2Fqr-signin%2F&size=180"
          alt="固定簽到 QR">
     <select id="userSelect"><option>名單載入中…</option></select>
     <button id="btn">簽到</button>
     <p id="msg">請選擇班級／座號／姓名後按「簽到」</p>
   </div>
   <script>
-    const API = 'https://script.google.com/macros/s/你的ID/exec';
-
-    // 載入人員名單
+    // ← 把以下換成你的 Web App URL
+    const API = 'https://script.google.com/macros/s/AKfycbxWJnl0Cmq7mT9Vzj4sWTabeqKrqAWkaccoK9S0ic-2C5VAxORadVQUYWTs7tgRpQw49g/exec'
+  
+    // 1. 載入人員名單
     fetch(`${API}?list=1`)
-      .then(r=>r.json())
-      .then(data=>{
+      .then(res => res.json())
+      .then(data => {
         const sel = document.getElementById('userSelect');
         sel.innerHTML = '<option value="">請選擇</option>';
-        data.users.forEach(u=>{
-          const o = document.createElement('option');
-          o.value = JSON.stringify(u);
-          o.textContent = `${u.cls} 班 ${u.seat} 號 ${u.name}`;
-          sel.appendChild(o);
+        data.users.forEach(u => {
+          const opt = document.createElement('option');
+          opt.value = JSON.stringify(u);
+          opt.textContent = `${u.cls} 班 ${u.seat} 號 ${u.name}`;
+          sel.appendChild(opt);
         });
       })
-      .catch(_=>document.getElementById('msg').textContent='載入名單失敗');
-
-    // 按鈕簽到
-    document.getElementById('btn').onclick = ()=>{
+      .catch(() => {
+        document.getElementById('msg').textContent = '無法載入人員名單';
+      });
+  
+    // 2. 簽到按鈕
+    document.getElementById('btn').onclick = () => {
       const sel = document.getElementById('userSelect');
       if (!sel.value) {
-        return document.getElementById('msg').textContent='請選擇一位同學';
+        return document.getElementById('msg').textContent = '請先選擇同學';
       }
-      const {cls,seat,name} = JSON.parse(sel.value);
-      const msg = document.getElementById('msg');
-      msg.textContent = '簽到中…';
+      const {cls, seat, name} = JSON.parse(sel.value);
+      const msgEl = document.getElementById('msg');
+      msgEl.textContent = '簽到中…';
+  
+      // 呼叫後端簽到 API
       fetch(`${API}?cls=${encodeURIComponent(cls)}&seat=${encodeURIComponent(seat)}&name=${encodeURIComponent(name)}`)
-        .then(r=>r.json())
-        .then(j=>msg.textContent=j.message)
-        .catch(_=>msg.textContent='網路錯誤，請稍後再試');
+        .then(res => res.json())
+        .then(j => {
+          msgEl.textContent = j.message;
+        })
+        .catch(() => {
+          msgEl.textContent = '網路錯誤，請稍後再試';
+        });
     };
   </script>
+  
 </body>
 </html>
