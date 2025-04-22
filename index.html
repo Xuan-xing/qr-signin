@@ -31,10 +31,12 @@
     <p id="msg">請選擇班級／座號／姓名後按「簽到」</p>
   </div>
   <script>
+    // ← 一定要貼上你最新部署後的 Web App URL
     const API = 'https://script.google.com/macros/s/AKfycbxWJnl0Cmq7mT9Vzj4sWTabeqKrqAWkaccoK9S0ic-2C5VAxORadVQUYWTs7tgRpQw49g/exec';
-
-    // JSONP 取名單
+  
+    // 1. 定義取名單的回調函式（JSONP）
     function renderList(data) {
+      console.log('renderList 回调，data=', data);
       const sel = document.getElementById('userSelect');
       sel.innerHTML = '<option value="">請選擇</option>';
       data.users.forEach(u => {
@@ -43,13 +45,12 @@
         opt.textContent = `${u.cls} 班 ${u.seat} 號 ${u.name}`;
         sel.appendChild(opt);
       });
+      document.getElementById('msg').textContent = '請選擇班級／座號／姓名後按「簽到」';
     }
-    const scriptList = document.createElement('script');
-    scriptList.src = `${API}?list=1&callback=renderList`;
-    document.body.appendChild(scriptList);
-
-    // JSONP 簽到
+  
+    // 2. 定義簽到結果的回調函式（JSONP）
     function handleSignInResponse(j) {
+      console.log('handleSignInResponse 回调，j=', j);
       const msgEl = document.getElementById('msg');
       if (j.timestamp) {
         msgEl.textContent = `${j.message}（${j.timestamp}）`;
@@ -57,20 +58,42 @@
         msgEl.textContent = j.message;
       }
     }
+  
+    // 3. 頁面載入後動態插入取得名單的 <script>
+    window.onload = () => {
+      const scriptList = document.createElement('script');
+      scriptList.src = `${API}?list=1&callback=renderList`;
+      scriptList.onerror = () => {
+        console.error('載入人員名單 JSONP 失敗', scriptList.src);
+        document.getElementById('msg').textContent = '載入名單失敗';
+      };
+      document.body.appendChild(scriptList);
+    };
+  
+    // 4. 點擊「簽到」按鈕後動態插入簽到的 <script>
     document.getElementById('btn').onclick = () => {
       const sel = document.getElementById('userSelect');
       const msgEl = document.getElementById('msg');
-      if (!sel.value) { msgEl.textContent = '請先選擇一位同學'; return; }
+      if (!sel.value) {
+        msgEl.textContent = '請先選擇一位同學';
+        return;
+      }
       const {cls, seat, name} = JSON.parse(sel.value);
       msgEl.textContent = '簽到中…';
+  
       const scriptSign = document.createElement('script');
       scriptSign.src = `${API}`
         + `?cls=${encodeURIComponent(cls)}`
         + `&seat=${encodeURIComponent(seat)}`
         + `&name=${encodeURIComponent(name)}`
         + `&callback=handleSignInResponse`;
+      scriptSign.onerror = () => {
+        console.error('簽到呼叫 JSONP 失敗', scriptSign.src);
+        msgEl.textContent = '簽到失敗，請稍後再試';
+      };
       document.body.appendChild(scriptSign);
     };
   </script>
+  
 </body>
 </html>
