@@ -1,42 +1,47 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>手機掃碼簽到</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: sans-serif; background: #f0f4f8;
       display: flex; align-items: center; justify-content: center;
       height: 100vh; }
-    .card { background: #fff; padding: 2rem; border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1); width: 320px;
-      text-align: center; }
-    h1 { margin-bottom: 1rem; color: #0078d4; }
-    select, button { width: 100%; padding: 0.6rem;
-      margin-top: 0.5rem; font-size: 1rem; }
-    #msg { margin-top: 1rem; color: #555; }
-    img.qr { width: 160px; height: 160px;
-      margin: 0 auto 1rem auto; display: block; }
+    .card { background: #fff; width: 320px; border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }
+    .card img.qr {
+      width: 100%; height: auto; /* 完整顯示，等比縮放 */
+      display: block; margin: 0; padding: 0;
+    }
+    .card .content {
+      padding: 1rem; text-align: center;
+    }
+    .card .content h1 { margin-bottom: 1rem; color: #0078d4; }
+    .card .content select,
+    .card .content button {
+      width: 100%; padding: 0.6rem; margin-top: 0.5rem;
+      font-size: 1rem;
+    }
+    .card .content #msg { margin-top: 1rem; color: #555; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>掃描 QR 簽到</h1>
-    <img class="qr"
-         src="https://quickchart.io/qr?text=https%3A%2F%2Fxuan-xing.github.io%2Fqr-signin%2F&size=180"
-         alt="簽到 QR">
-    <select id="userSelect"><option>名單載入中…</option></select>
-    <button id="btn">簽到</button>
-    <p id="msg">請選擇班級／座號／姓名後按「簽到」</p>
+    <img class="qr" src="qr.png" alt="簽到 QR" />
+    <div class="content">
+      <h1>掃描 QR 簽到</h1>
+      <select id="userSelect"><option>名單載入中…</option></select>
+      <button id="btn">簽到</button>
+      <p id="msg">請選擇班級／座號／姓名後按「簽到」</p>
+    </div>
   </div>
+
   <script>
-    // ← 一定要貼上你最新部署後的 Web App URL
     const API = 'https://script.google.com/macros/s/AKfycbxDSLuyx6NmZNgl19htPbRdl-ZaBWy5T8_x5EhHVgEkUeNf6AOmIR4pL0dvO14lXH4DbA/exec';
-  
-    // 1. 定義取名單的回調函式（JSONP）
+
     function renderList(data) {
-      console.log('renderList 回调，data=', data);
       const sel = document.getElementById('userSelect');
       sel.innerHTML = '<option value="">請選擇</option>';
       data.users.forEach(u => {
@@ -47,53 +52,36 @@
       });
       document.getElementById('msg').textContent = '請選擇班級／座號／姓名後按「簽到」';
     }
-  
-    // 2. 定義簽到結果的回調函式（JSONP）
+
     function handleSignInResponse(j) {
-      console.log('handleSignInResponse 回调，j=', j);
       const msgEl = document.getElementById('msg');
-      if (j.timestamp) {
-        msgEl.textContent = `${j.message}（${j.timestamp}）`;
-      } else {
-        msgEl.textContent = j.message;
-      }
+      msgEl.textContent = j.timestamp
+        ? `${j.message}（${j.timestamp}）`
+        : j.message;
     }
-  
-    // 3. 頁面載入後動態插入取得名單的 <script>
+
     window.onload = () => {
-      const scriptList = document.createElement('script');
-      scriptList.src = `${API}?list=1&callback=renderList`;
-      scriptList.onerror = () => {
-        console.error('載入人員名單 JSONP 失敗', scriptList.src);
-        document.getElementById('msg').textContent = '載入名單失敗';
-      };
-      document.body.appendChild(scriptList);
+      const script = document.createElement('script');
+      script.src = `${API}?list=1&callback=renderList`;
+      script.onerror = () => { document.getElementById('msg').textContent = '載入名單失敗'; };
+      document.body.appendChild(script);
     };
-  
-    // 4. 點擊「簽到」按鈕後動態插入簽到的 <script>
+
     document.getElementById('btn').onclick = () => {
       const sel = document.getElementById('userSelect');
       const msgEl = document.getElementById('msg');
-      if (!sel.value) {
-        msgEl.textContent = '請先選擇一位同學';
-        return;
-      }
+      if (!sel.value) { msgEl.textContent = '請先選擇一位同學'; return; }
       const {cls, seat, name} = JSON.parse(sel.value);
       msgEl.textContent = '簽到中…';
-  
-      const scriptSign = document.createElement('script');
-      scriptSign.src = `${API}`
+      const script = document.createElement('script');
+      script.src = `${API}`
         + `?cls=${encodeURIComponent(cls)}`
         + `&seat=${encodeURIComponent(seat)}`
         + `&name=${encodeURIComponent(name)}`
         + `&callback=handleSignInResponse`;
-      scriptSign.onerror = () => {
-        console.error('簽到呼叫 JSONP 失敗', scriptSign.src);
-        msgEl.textContent = '簽到失敗，請稍後再試';
-      };
-      document.body.appendChild(scriptSign);
+      script.onerror = () => { msgEl.textContent = '簽到失敗，請稍後再試'; };
+      document.body.appendChild(script);
     };
   </script>
-  
 </body>
 </html>
