@@ -5,33 +5,31 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>手機掃碼簽到</title>
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:sans-serif;background:#f0f4f8;display:flex;align-items:center;justify-content:center;height:100vh}
-    .card{background:#fff;padding:2rem;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);width:320px;text-align:center}
-    h1{margin-bottom:1rem;color:#0078d4}
-    select,button{width:100%;padding:0.6rem;margin-top:0.5rem;font-size:1rem}
-    #msg{margin-top:1rem;color:#555}
-    img.qr{width:160px;height:160px;margin:0 auto 1rem auto;display:block}
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f0f4f8; display: flex; align-items: center; justify-content: center; height: 100vh; }
+    .card { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width: 320px; text-align: center; }
+    h1 { margin-bottom: 1rem; color: #0078d4; }
+    select, button { width: 100%; padding: 0.6rem; margin-top: 0.5rem; font-size: 1rem; }
+    #msg { margin-top: 1rem; color: #555; }
+    img.qr { width: 160px; height: 160px; margin: 0 auto 1rem auto; display: block; }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>掃描 QR 簽到</h1>
-    <!-- 固定 QR 圖，指向本頁 -->
     <img class="qr"
          src="https://quickchart.io/qr?text=https%3A%2F%2Fxuan-xing.github.io%2Fqr-signin%2F&size=180"
-         alt="固定簽到 QR">
+         alt="簽到 QR">
     <select id="userSelect"><option>名單載入中…</option></select>
     <button id="btn">簽到</button>
     <p id="msg">請選擇班級／座號／姓名後按「簽到」</p>
   </div>
   <script>
-    // ← 把以下換成你的 Web App URL
-    const API = 'https://script.google.com/macros/s/AKfycbxWJnl0Cmq7mT9Vzj4sWTabeqKrqAWkaccoK9S0ic-2C5VAxORadVQUYWTs7tgRpQw49g/exec'
-  
-    // 1. 載入人員名單
+    const API = 'https://script.google.com/macros/s/你的ID/exec';
+
+    // 載入人員名單
     fetch(`${API}?list=1`)
-      .then(res => res.json())
+      .then(r => r.json())
       .then(data => {
         const sel = document.getElementById('userSelect');
         sel.innerHTML = '<option value="">請選擇</option>';
@@ -45,28 +43,36 @@
       .catch(() => {
         document.getElementById('msg').textContent = '無法載入人員名單';
       });
-  
-    // 2. 簽到按鈕
+
+    // 按鈕簽到
     document.getElementById('btn').onclick = () => {
       const sel = document.getElementById('userSelect');
+      const msgEl = document.getElementById('msg');
       if (!sel.value) {
-        return document.getElementById('msg').textContent = '請先選擇同學';
+        msgEl.textContent = '請先選擇一位同學';
+        return;
       }
       const {cls, seat, name} = JSON.parse(sel.value);
-      const msgEl = document.getElementById('msg');
       msgEl.textContent = '簽到中…';
-  
-      // 呼叫後端簽到 API
-      fetch(`${API}?cls=${encodeURIComponent(cls)}&seat=${encodeURIComponent(seat)}&name=${encodeURIComponent(name)}`)
-        .then(res => res.json())
-        .then(j => {
+
+      fetch(
+        `${API}`
+        + `?cls=${encodeURIComponent(cls)}`
+        + `&seat=${encodeURIComponent(seat)}`
+        + `&name=${encodeURIComponent(name)}`
+      )
+      .then(res => res.json())
+      .then(j => {
+        if (j.timestamp) {
+          msgEl.textContent = `${j.message}（${j.timestamp}）`;
+        } else {
           msgEl.textContent = j.message;
-        })
-        .catch(() => {
-          msgEl.textContent = '網路錯誤，請稍後再試';
-        });
+        }
+      })
+      .catch(() => {
+        msgEl.textContent = '網路錯誤，請稍後再試';
+      });
     };
   </script>
-  
 </body>
 </html>
